@@ -83,9 +83,18 @@ class AAB_Comments
             self::FILTER_PRIORITY
         );
 
+        // Printed via the comment_form action, not inside submit_field: that
+        // string goes through sprintf(), and the nonce referer holds the
+        // percent-encoded (Persian) URL, e.g. "%D8" -> "Unknown format specifier".
+        $print_fields = static function () use ($post_id) {
+            echo self::get_submission_fields($post_id); // phpcs:ignore WordPress.Security.EscapeOutput -- built from escaped parts.
+        };
+        add_action('comment_form', $print_fields);
+
         try {
             comment_form($args, $post_id);
         } finally {
+            remove_action('comment_form', $print_fields);
             remove_filter(
                 'pre_option_comment_registration',
                 [__CLASS__, 'disable_registration_requirement'],

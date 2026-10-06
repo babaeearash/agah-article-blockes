@@ -5,7 +5,7 @@
     "build": "node scripts/build.mjs",
     "zip": "node scripts/build.mjs && cd . && zip -qr aagah-article-blocks-$npm_package_version.zip aagah-article-blocks -x '*.DS_Store'"
   },
-  "version": "1.8.0",
+  "version": "1.8.1",
   "devDependencies": {
     "esbuild": "^0.25.0"
   }

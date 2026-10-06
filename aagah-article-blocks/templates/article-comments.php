@@ -141,7 +141,6 @@ $comment_field =
         <label for="comment">متن دیدگاه</label>
         <textarea id="comment" name="comment" maxlength="1200" placeholder="پرسش یا تجربه خود را درباره این مقاله بنویسید" required aria-required="true"></textarea>
     </div>';
-$submission_fields = AAB_Comments::get_submission_fields($post_id);
 ?>
 
 <section class="aab-comments-wrap" aria-labelledby="aab-comments-title-<?php echo esc_attr($post_id); ?>">
@@ -177,7 +176,7 @@ $submission_fields = AAB_Comments::get_submission_fields($post_id);
                     'comment_notes_before' => '',
                     'comment_notes_after'  => '',
                     'submit_button'        => '<button name="%1$s" type="submit" id="%2$s" class="%3$s">%4$s</button>',
-                    'submit_field'         => '<div class="aab-comment-submit-wrap">%1$s %2$s ' . $submission_fields . '</div><p class="aab-comment-form-note">دیدگاه‌ها پس از بررسی تیم آکادمی منتشر می‌شوند.</p><p class="aab-comment-form-status" role="status" aria-live="polite"></p>',
+                    'submit_field'         => '<div class="aab-comment-submit-wrap">%1$s %2$s</div><p class="aab-comment-form-note">دیدگاه‌ها پس از بررسی تیم آکادمی منتشر می‌شوند.</p><p class="aab-comment-form-status" role="status" aria-live="polite"></p>',
                 ], $post_id);
                 ?>
             </div>
