@@ -1,13 +1,7 @@
 <?php if (!defined('ABSPATH')) exit; ?>
 
 <?php
-$comments = get_comments([
-    'post_id' => $post_id,
-    'status'  => 'approve',
-    'type'    => 'comment',
-    'orderby' => 'comment_date_gmt',
-    'order'   => 'ASC',
-]);
+$comments = get_comments(AAB_Comments::get_query_args($post_id));
 
 $comment_count = (int) get_comments([
     'post_id' => $post_id,
@@ -45,11 +39,12 @@ $render_comment = static function ($comment, $depth = 0) use (&$render_comment, 
     $children = $comment_children[(int) $comment->comment_ID] ?? [];
     $timestamp = (int) strtotime($comment->comment_date_gmt . ' GMT');
     $date_label = human_time_diff($timestamp, current_time('timestamp', true)) . ' پیش';
-    $can_reply = $form_is_visible && $threaded && $depth < ($max_depth - 1);
+    $is_pending = (string) $comment->comment_approved === '0';
+    $can_reply = !$is_pending && $form_is_visible && $threaded && $depth < ($max_depth - 1);
     ?>
     <article
         id="comment-<?php echo esc_attr($comment->comment_ID); ?>"
-        class="aab-comment-card<?php echo $depth > 0 ? ' aab-comment-card--reply' : ''; ?><?php echo $is_staff ? ' aab-comment-card--staff' : ''; ?>"
+        class="aab-comment-card<?php echo $depth > 0 ? ' aab-comment-card--reply' : ''; ?><?php echo $is_staff ? ' aab-comment-card--staff' : ''; ?><?php echo $is_pending ? ' aab-comment-card--pending' : ''; ?>"
         data-comment-id="<?php echo esc_attr($comment->comment_ID); ?>"
     >
         <header class="aab-comment-card-head">
@@ -68,6 +63,13 @@ $render_comment = static function ($comment, $depth = 0) use (&$render_comment, 
                 </time>
             </span>
         </header>
+
+        <?php if ($is_pending) : ?>
+            <p class="aab-comment-pending-note" role="status">
+                <strong>دیدگاه شما ثبت شد.</strong>
+                پس از بررسی تیم آکادمی برای همه نمایش داده می‌شود؛ تا آن زمان فقط شما آن را می‌بینید.
+            </p>
+        <?php endif; ?>
 
         <div class="aab-comment-card-text">
             <?php

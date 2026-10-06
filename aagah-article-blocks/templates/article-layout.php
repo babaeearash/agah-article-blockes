@@ -3,15 +3,14 @@
 <div class="aab-layout-wrap">
 
     <div class="aab-layout-top">
-        <div class="aab-layout-grid <?php echo !empty($sidebar_html) ? 'aab-has-sidebar ' : 'aab-no-sidebar '; ?><?php echo ($sidebar_side === 'left') ? 'aab-sidebar-left' : 'aab-sidebar-right'; ?>">
+        <div class="aab-layout-grid <?php echo $has_toc ? 'aab-has-sidebar aab-has-toc ' : 'aab-no-sidebar '; ?><?php echo ($sidebar_side === 'left') ? 'aab-sidebar-left' : 'aab-sidebar-right'; ?>">
             <div class="aab-layout-main">
                 <?php echo $content_html; ?>
             </div>
 
-            <?php if (!empty($sidebar_html)) : ?>
-                <div class="aab-layout-side">
-                    <?php echo $sidebar_html; ?>
-                </div>
+            <?php if ($has_toc) : ?>
+                <?php /* Desktop sidebar column. The TOC itself stays inside the article markup and is laid over this column with CSS. */ ?>
+                <div class="aab-layout-side" aria-hidden="true"></div>
             <?php endif; ?>
         </div>
     </div>

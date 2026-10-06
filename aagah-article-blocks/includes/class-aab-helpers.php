@@ -126,82 +126,10 @@ class AAB_Helpers
         return $items;
     }
 
+    /** @deprecated 1.8.0 Use AAB_TOC::parse(). */
     public static function extract_toc_from_content($content)
     {
-        $toc_items = [];
-        $index = 0;
-
-        if (empty($content)) {
-            return [
-                'content' => $content,
-                'items'   => $toc_items,
-            ];
-        }
-
-        $pattern = '/<h([2-6])([^>]*)>(.*?)<\/h\1>/iu';
-
-        $used_ids = [];
-
-        $content = preg_replace_callback($pattern, function ($matches) use (&$toc_items, &$index, &$used_ids) {
-            $level = isset($matches[1]) ? absint($matches[1]) : 2;
-            $attrs = isset($matches[2]) ? $matches[2] : '';
-            $inner = isset($matches[3]) ? $matches[3] : '';
-            $text  = trim(wp_strip_all_tags($inner));
-
-            if ($text === '') {
-                return $matches[0];
-            }
-
-            $index++;
-            $existing_id = '';
-
-            $id_pattern = '/\sid\s*=\s*(?:([\"\'])(.*?)\1|([^\s>]+))/iu';
-
-            if (preg_match($id_pattern, $attrs, $id_match)) {
-                $raw_id = $id_match[2] !== '' ? $id_match[2] : $id_match[3];
-                $existing_id = trim(html_entity_decode($raw_id, ENT_QUOTES, get_bloginfo('charset')));
-            }
-
-            $base_id = $existing_id ?: sanitize_title($text);
-
-            if (empty($base_id)) {
-                $base_id = 'section-' . $index;
-            }
-
-            $slug = $base_id;
-            $duplicate_index = 2;
-
-            while (isset($used_ids[$slug])) {
-                $slug = $base_id . '-' . $duplicate_index;
-                $duplicate_index++;
-            }
-
-            $used_ids[$slug] = true;
-
-            $toc_items[] = [
-                'id'    => $slug,
-                'text'  => $text,
-                'level' => $level,
-            ];
-
-            if ($existing_id !== '') {
-                $attrs = preg_replace(
-                    $id_pattern,
-                    ' id="' . esc_attr($slug) . '"',
-                    $attrs,
-                    1
-                );
-            } else {
-                $attrs .= ' id="' . esc_attr($slug) . '"';
-            }
-
-            return '<h' . $level . $attrs . '>' . $inner . '</h' . $level . '>';
-        }, $content);
-
-        return [
-            'content' => $content,
-            'items'   => $toc_items,
-        ];
+        return AAB_TOC::parse($content);
     }
 
     public static function get_fallback_image()

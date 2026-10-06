@@ -31,7 +31,7 @@ $first_title = $first_video['title'] !== '' ? $first_video['title'] : 'ویدی�
             </div>
             <div class="aab-video-current">
                 <span>در حال پخش</span>
-                <h3 data-aab-video-current-title><?php echo esc_html($first_title); ?></h3>
+                <h3 class="aab-toc-exclude" data-aab-video-current-title><?php echo esc_html($first_title); ?></h3>
             </div>
         </div>
 

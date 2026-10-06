@@ -37,25 +37,6 @@ document.addEventListener('click', async function (e) {
     }
 });
 
-document.addEventListener('click', function (e) {
-    const tocLink = e.target.closest('.aab-toc-link[data-aab-toc-target]');
-    if (!tocLink) return;
-
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-
-    const targetId = tocLink.getAttribute('data-aab-toc-target');
-    const target = targetId ? document.getElementById(targetId) : null;
-
-    if (!target) return;
-
-    e.preventDefault();
-    target.scrollIntoView({
-        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-        block: 'start'
-    });
-    window.history.pushState(null, '', '#' + encodeURIComponent(targetId));
-});
-
 function aabInitResponsiveTables() {
     document.querySelectorAll('.aab-content table').forEach(function (table) {
         let scrollArea = table.closest('.aab-table-scroll, .wp-block-table, .table-responsive');
@@ -73,54 +54,12 @@ function aabInitResponsiveTables() {
     });
 }
 
-function aabInitTocTargets() {
-    const normalizeText = function (value) {
-        return (value || '').replace(/\s+/g, ' ').trim();
-    };
-
-    const headings = Array.from(document.querySelectorAll('h2, h3, h4')).filter(function (heading) {
-        return !heading.closest('.aab-toc');
-    });
-
-    document.querySelectorAll('.aab-toc').forEach(function (toc) {
-        const claimedHeadings = new Set();
-
-        toc.querySelectorAll('.aab-toc-link[data-aab-toc-target]').forEach(function (link) {
-            const targetId = link.getAttribute('data-aab-toc-target');
-            if (!targetId || document.getElementById(targetId)) return;
-
-            const item = link.closest('.aab-toc-item');
-            const levelMatch = item ? item.className.match(/aab-toc-level-([2-4])/) : null;
-            const expectedTag = levelMatch ? 'H' + levelMatch[1] : '';
-            const expectedText = normalizeText(link.textContent);
-
-            const heading = headings.find(function (candidate) {
-                return !claimedHeadings.has(candidate) &&
-                    (!expectedTag || candidate.tagName === expectedTag) &&
-                    normalizeText(candidate.textContent) === expectedText;
-            });
-
-            if (!heading) return;
-
-            claimedHeadings.add(heading);
-            if (heading.id) {
-                link.setAttribute('href', '#' + heading.id);
-                link.setAttribute('data-aab-toc-target', heading.id);
-            } else {
-                heading.id = targetId;
-            }
-        });
-    });
-}
-
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
         aabInitResponsiveTables();
-        aabInitTocTargets();
     });
 } else {
     aabInitResponsiveTables();
-    aabInitTocTargets();
 }
 
 function aabActivatePlaylistVideo(button) {
@@ -321,83 +260,14 @@ function aabInitGalleryLightbox() {
     });
 }
 
-function aabInitTocScrollspy() {
-    document.documentElement.classList.add('js');
-    const toc = document.querySelector('[data-aab-toc]');
-    if (!toc) return;
-    const list = toc.querySelector('.aab-toc-list');
-    const items = Array.from(toc.querySelectorAll('[data-aab-toc-item]'));
-    const links = Array.from(toc.querySelectorAll('.aab-toc-link[data-aab-toc-target]'));
-    const progressBar = toc.querySelector('.aab-toc-progress-bar');
-    const article = document.querySelector('.aab-content') || document.querySelector('.aab-article');
-    const details = toc.querySelector('.aab-toc-disclosure');
-    const origin = toc.parentNode, marker = document.createComment('aab-toc-origin');
-    origin.insertBefore(marker, toc);
-    const desktop = window.matchMedia('(min-width: 1025px)');
-    let lastDesktop = desktop.matches;
-    let desktopOpen = desktop.matches ? true : null;
-    let mobileOpen = details ? details.open : false;
-    if (details && desktop.matches) details.open = true;
-    function arrange() {
-        const dest = document.querySelector('[data-aab-toc-destination]');
-        const side = dest ? dest.closest('.aab-layout-side') : null;
-        if (side) side.style.display = desktop.matches ? '' : 'none';
-        if (desktop.matches && dest) {
-            if (toc.parentNode !== dest) dest.appendChild(toc);
-            toc.classList.add('aab-toc-moved');
-        } else {
-            if (marker.parentNode && toc.parentNode !== marker.parentNode) marker.parentNode.insertBefore(toc, marker.nextSibling);
-            toc.classList.remove('aab-toc-moved');
-        }
-    }
-    arrange();
-    if (details) details.addEventListener('toggle', () => { if (desktop.matches) desktopOpen = details.open; else mobileOpen = details.open; });
-    const changeMode = () => {
-        if (details) {
-            if (lastDesktop) desktopOpen = details.open; else mobileOpen = details.open;
-            lastDesktop = desktop.matches;
-            details.open = desktop.matches ? (desktopOpen === null ? true : desktopOpen) : mobileOpen;
-            if (desktop.matches && desktopOpen === null) desktopOpen = true;
-        }
-        arrange();
-    };
-    desktop.addEventListener ? desktop.addEventListener('change', changeMode) : desktop.addListener(changeMode);
-    let stack=[];
-    items.forEach((item,i)=>{
-        const level=Number(item.dataset.level)||2;
-        while(stack.length && stack[stack.length-1].level>=level) stack.pop();
-        const parent=stack[stack.length-1];
-        if(parent){item.dataset.parentIndex=parent.index;parent.item.classList.add('has-children');}
-        stack.push({level,index:i,item});
-    });
-    items.forEach(item=>{
-        if(!item.classList.contains('has-children'))return;
-        const button=item.querySelector(':scope > .aab-toc-branch-toggle');if(!button)return;
-        button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();setBranch(item,!item.classList.contains('is-expanded'));});
-    });
-    function setBranch(item,open){item.classList.toggle('is-expanded',open);const b=item.querySelector(':scope > .aab-toc-branch-toggle');if(b){b.setAttribute('aria-expanded',String(open));b.setAttribute('aria-label',open?'بستن زیرعنوان‌ها':'باز کردن زیرعنوان‌ها');}items.forEach(child=>{if(child.dataset.parentIndex===undefined)return;let parent=items[Number(child.dataset.parentIndex)],visible=true;while(parent){if(!parent.classList.contains('is-expanded'))visible=false;parent=parent.dataset.parentIndex!==undefined?items[Number(parent.dataset.parentIndex)]:null;}child.hidden=!visible;});}
-    items.forEach(item=>{if(item.dataset.parentIndex!==undefined)item.hidden=true;});
-    document.addEventListener('click',e=>{const link=e.target.closest('.aab-toc-link[data-aab-toc-target]');if(!link)return;let item=link.closest('[data-aab-toc-item]');while(item&&item.dataset.parentIndex!==undefined){const parent=items[Number(item.dataset.parentIndex)];setBranch(parent,true);item=parent;}});
-    const update=()=>{
-        if(progressBar&&article){const r=article.getBoundingClientRect(),total=r.height-innerHeight;if(total>0)progressBar.style.width=Math.min(100,Math.max(0,(-r.top/total)*100))+'%';}
-        let current=null;links.forEach(link=>{const h=document.getElementById(link.dataset.aabTocTarget);if(h&&h.getBoundingClientRect().top<=140)current=link;});
-        items.forEach(item=>item.classList.remove('is-ancestor'));
-        links.forEach(link=>{const active=link===current;link.classList.toggle('is-active',active);if(active)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current');});
-        if(current){let item=current.closest('[data-aab-toc-item]');while(item&&item.dataset.parentIndex!==undefined){const parent=items[Number(item.dataset.parentIndex)];parent.classList.add('is-ancestor');setBranch(parent,true);item=parent;}}
-    };
-    let tick=false;window.addEventListener('scroll',()=>{if(!tick){requestAnimationFrame(()=>{update();tick=false;});tick=true;}},{passive:true});window.addEventListener('resize',arrange,{passive:true});update();
-}
-
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {
         aabInitGalleryLightbox();
         aabInitGallerySlider();
-        aabInitTocScrollspy();
     });
 } else {
     aabInitGalleryLightbox();
     aabInitGallerySlider();
-    aabInitTocScrollspy();
 }
 
 
@@ -429,3 +299,277 @@ function aabInitGallerySlider() {
   players.forEach(p=>p.querySelector('audio')?.addEventListener('play',()=>metadata(p)));
  }
 })();
+
+/* Table of contents: smooth jump, branches, scrollspy, mobile preview + pill. */
+(function () {
+    const DESKTOP = window.matchMedia('(min-width: 1025px)');
+    const reduceMotion = function () {
+        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    };
+    const cssPx = function (name, fallback) {
+        const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+        return Number.isFinite(value) ? value : fallback;
+    };
+    const normalize = function (value) {
+        return (value || '').replace(/\s+/g, ' ').trim();
+    };
+
+    function scrollToHeading(heading) {
+        const top = heading.getBoundingClientRect().top + window.scrollY - cssPx('--aab-scroll-offset', 110);
+        window.scrollTo({ top: Math.max(0, top), behavior: reduceMotion() ? 'auto' : 'smooth' });
+        if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+        heading.focus({ preventScroll: true });
+    }
+
+    // Standalone TOCs may point at headings the theme rendered without our ids.
+    function resolveTargets(toc) {
+        let headings = null;
+        toc.querySelectorAll('[data-aab-toc-target]').forEach(function (link) {
+            const id = link.getAttribute('data-aab-toc-target');
+            if (document.getElementById(id)) return;
+            headings = headings || Array.from(document.querySelectorAll('h2,h3,h4,h5,h6')).filter(function (h) {
+                return !h.closest('.aab-toc');
+            });
+            const text = normalize(link.querySelector('.aab-toc__text').textContent);
+            const match = headings.find(function (h) { return normalize(h.textContent) === text; });
+            if (!match) return;
+            headings.splice(headings.indexOf(match), 1);
+            if (!match.id) match.id = id;
+            link.setAttribute('href', '#' + match.id);
+            link.setAttribute('data-aab-toc-target', match.id);
+        });
+    }
+
+    function initToc(toc) {
+        resolveTargets(toc);
+
+        const links = Array.from(toc.querySelectorAll('.aab-toc__link'));
+        const scroller = toc.querySelector('.aab-toc__scroller');
+        const more = toc.querySelector('[data-aab-toc-more]');
+        const progress = toc.querySelector('[data-aab-toc-progress]');
+        const article = toc.closest('.aab-article');
+        const content = (article && article.querySelector('.aab-content')) || article || document.querySelector('.aab-content');
+        const entries = links.map(function (link) {
+            return { link: link, item: link.closest('.aab-toc__item'), heading: document.getElementById(link.getAttribute('data-aab-toc-target')), top: 0 };
+        }).filter(function (entry) { return entry.heading; });
+        let current = null;
+
+        function setBranch(item, open) {
+            item.classList.toggle('is-open', open);
+            const button = item.querySelector(':scope > .aab-toc__row > .aab-toc__branch');
+            if (button) button.setAttribute('aria-expanded', String(open));
+        }
+        function ancestors(item) {
+            const list = [];
+            let parent = item.parentElement.closest('.aab-toc__item');
+            while (parent && toc.contains(parent)) {
+                list.push(parent);
+                parent = parent.parentElement.closest('.aab-toc__item');
+            }
+            return list;
+        }
+
+        // Mobile preview: clamp only when the list is actually taller than the preview.
+        function setClamped(clamped) {
+            toc.classList.toggle('is-clamped', clamped);
+            if (more) more.setAttribute('aria-expanded', String(!clamped));
+        }
+        function refreshMore() {
+            if (!more) return;
+            if (DESKTOP.matches || toc.classList.contains('is-docked')) {
+                more.hidden = true;
+                return;
+            }
+            const wasClamped = toc.classList.contains('is-clamped');
+            setClamped(true);
+            const overflowing = scroller.scrollHeight > scroller.clientHeight + 8;
+            setClamped(overflowing && wasClamped);
+            more.hidden = !overflowing;
+        }
+        if (more) {
+            more.addEventListener('click', function () {
+                const expand = toc.classList.contains('is-clamped');
+                setClamped(!expand);
+                if (!expand && toc.getBoundingClientRect().top < 0) toc.scrollIntoView({ block: 'start', behavior: reduceMotion() ? 'auto' : 'smooth' });
+            });
+        }
+        // Keyboard users tabbing into the hidden part of the preview get the full list.
+        toc.addEventListener('focusin', function (e) {
+            if (toc.classList.contains('is-clamped') && e.target.closest('.aab-toc__scroller') && !DESKTOP.matches) setClamped(false);
+        });
+
+        toc.addEventListener('click', function (e) {
+            const branch = e.target.closest('.aab-toc__branch');
+            if (branch) {
+                const item = branch.closest('.aab-toc__item');
+                item.dataset.userToggled = '1';
+                setBranch(item, !item.classList.contains('is-open'));
+                return;
+            }
+            const link = e.target.closest('.aab-toc__link');
+            if (!link || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+            const heading = document.getElementById(link.getAttribute('data-aab-toc-target'));
+            if (!heading) return;
+            e.preventDefault();
+            scrollToHeading(heading);
+            history.pushState(null, '', '#' + encodeURIComponent(heading.id));
+        });
+
+        // Scrollspy from cached offsets: no layout reads per scroll frame except the content box.
+        function measure() {
+            entries.forEach(function (entry) {
+                entry.top = entry.heading.getBoundingClientRect().top + window.scrollY;
+            });
+        }
+        function keepVisible(link) {
+            if (!scroller || scroller.scrollHeight <= scroller.clientHeight) return;
+            const linkBox = link.getBoundingClientRect();
+            const box = scroller.getBoundingClientRect();
+            if (linkBox.top < box.top + 8 || linkBox.bottom > box.bottom - 8) {
+                scroller.scrollTo({ top: scroller.scrollTop + linkBox.top - box.top - box.height / 3, behavior: reduceMotion() ? 'auto' : 'smooth' });
+            }
+        }
+        function setCurrent(entry) {
+            if (entry === current) return;
+            if (current) {
+                current.link.classList.remove('is-active');
+                current.link.removeAttribute('aria-current');
+                ancestors(current.item).forEach(function (item) {
+                    item.classList.remove('is-ancestor');
+                    if (!item.dataset.userToggled) setBranch(item, false);
+                });
+            }
+            current = entry;
+            if (entry) {
+                entry.link.classList.add('is-active');
+                entry.link.setAttribute('aria-current', 'location');
+                ancestors(entry.item).forEach(function (item) {
+                    item.classList.add('is-ancestor');
+                    setBranch(item, true);
+                });
+                if (toc.classList.contains('is-docked') || DESKTOP.matches) keepVisible(entry.link);
+            }
+            toc.dispatchEvent(new CustomEvent('aab:toc-current', { detail: entry ? normalize(entry.link.querySelector('.aab-toc__text').textContent) : '' }));
+        }
+        function update() {
+            const line = window.scrollY + cssPx('--aab-scroll-offset', 110) + 12;
+            let next = null;
+            for (let i = 0; i < entries.length && entries[i].top <= line; i++) next = entries[i];
+            setCurrent(next);
+
+            if (content) {
+                const box = content.getBoundingClientRect();
+                const total = box.height - window.innerHeight * 0.6;
+                const ratio = total > 0 ? Math.min(1, Math.max(0, -box.top / total)) : 0;
+                if (progress) progress.style.transform = 'scaleX(' + ratio.toFixed(3) + ')';
+                toc.dispatchEvent(new CustomEvent('aab:toc-progress', { detail: ratio }));
+            }
+        }
+
+        let ticking = false;
+        const onScroll = function () {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(function () { ticking = false; update(); });
+        };
+        const remeasure = function () { measure(); refreshMore(); update(); };
+
+        measure();
+        refreshMore();
+        update();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('load', remeasure);
+        DESKTOP.addEventListener ? DESKTOP.addEventListener('change', remeasure) : DESKTOP.addListener(remeasure);
+        if (window.ResizeObserver && content) {
+            let pending = 0;
+            new ResizeObserver(function () {
+                cancelAnimationFrame(pending);
+                pending = requestAnimationFrame(remeasure);
+            }).observe(content);
+        } else {
+            window.addEventListener('resize', remeasure, { passive: true });
+        }
+
+        return { toc: toc, entries: entries };
+    }
+
+    // Elementor/theme sidebars that use [aagah_article_sidebar]: dock there on desktop.
+    function initDock(toc) {
+        const dest = document.querySelector('[data-aab-toc-destination]');
+        if (!dest || toc.closest('.aab-has-toc')) return;
+        const marker = document.createComment('aab-toc');
+        toc.parentNode.insertBefore(marker, toc);
+        const place = function () {
+            if (DESKTOP.matches) {
+                if (toc.parentNode !== dest) dest.appendChild(toc);
+            } else if (toc.parentNode !== marker.parentNode) {
+                marker.parentNode.insertBefore(toc, marker.nextSibling);
+            }
+            toc.classList.toggle('is-docked', DESKTOP.matches);
+        };
+        place();
+        DESKTOP.addEventListener ? DESKTOP.addEventListener('change', place) : DESKTOP.addListener(place);
+    }
+
+    // Mobile pill showing the current section once the TOC is out of view.
+    function initFab(toc) {
+        if (!window.IntersectionObserver) return;
+        const content = toc.closest('.aab-article');
+        if (!content) return;
+        const fab = document.createElement('button');
+        fab.type = 'button';
+        fab.className = 'aab-toc-fab';
+        fab.setAttribute('aria-label', 'بازگشت به فهرست مطالب');
+        fab.innerHTML = '<span class="aab-toc-fab__icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/></svg></span>' +
+            '<span class="aab-toc-fab__text"><span class="aab-toc-fab__label">فهرست مطالب</span><span class="aab-toc-fab__current"></span></span><span class="aab-toc-fab__bar"></span>';
+        document.body.appendChild(fab);
+        const currentEl = fab.querySelector('.aab-toc-fab__current');
+        const bar = fab.querySelector('.aab-toc-fab__bar');
+        let tocVisible = true;
+        let contentVisible = false;
+        const sync = function () {
+            fab.classList.toggle('is-visible', !tocVisible && contentVisible && currentEl.textContent !== '');
+        };
+        toc.addEventListener('aab:toc-current', function (e) { currentEl.textContent = e.detail; sync(); });
+        toc.addEventListener('aab:toc-progress', function (e) { bar.style.transform = 'scaleX(' + e.detail.toFixed(3) + ')'; });
+        new IntersectionObserver(function (list) { tocVisible = list[0].isIntersecting; sync(); }).observe(toc);
+        new IntersectionObserver(function (list) { contentVisible = list[0].isIntersecting; sync(); }).observe(content);
+        fab.addEventListener('click', function () {
+            toc.classList.remove('is-clamped');
+            const active = toc.querySelector('.aab-toc__link.is-active') || toc.querySelector('.aab-toc__link');
+            const top = toc.getBoundingClientRect().top + window.scrollY - cssPx('--aab-scroll-offset', 110);
+            window.scrollTo({ top: Math.max(0, top), behavior: reduceMotion() ? 'auto' : 'smooth' });
+            if (active) active.focus({ preventScroll: true });
+        });
+    }
+
+    function boot() {
+        document.querySelectorAll('[data-aab-toc]').forEach(function (toc, index) {
+            initToc(toc);
+            if (index === 0 && !toc.classList.contains('aab-toc--standalone')) initFab(toc);
+            initDock(toc);
+        });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+})();
+
+/* Comment form: prevent double submit and show progress. */
+document.addEventListener('submit', function (e) {
+    const form = e.target.closest('.aab-comment-form');
+    if (!form) return;
+    const button = form.querySelector('.aab-comment-submit');
+    if (!button) return;
+    if (button.getAttribute('aria-busy') === 'true') {
+        e.preventDefault();
+        return;
+    }
+    button.setAttribute('aria-busy', 'true');
+    button.dataset.label = button.textContent;
+    button.textContent = 'در حال ارسال…';
+    window.addEventListener('pageshow', function () {
+        button.removeAttribute('aria-busy');
+        button.textContent = button.dataset.label;
+    }, { once: true });
+});

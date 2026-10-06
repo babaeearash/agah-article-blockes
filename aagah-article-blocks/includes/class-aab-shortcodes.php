@@ -29,6 +29,7 @@ class AAB_Shortcodes
             'show_tags'        => 'yes',
             'show_breadcrumb'  => 'yes',
             'show_toc'         => 'yes',
+            'toc_depth'        => AAB_TOC::DEFAULT_DEPTH,
         ], $atts, 'aagah_article_content');
 
         $post_id = AAB_Helpers::get_post_id($atts);
@@ -50,7 +51,14 @@ class AAB_Shortcodes
         $prepared_content = AAB_Content_Blocks::with_post_context($post_id, function () use ($post) {
             return apply_filters('the_content', $post->post_content);
         });
-        $toc_data = AAB_Helpers::extract_toc_from_content($prepared_content);
+        $toc_data = AAB_TOC::parse($prepared_content);
+        $toc_html = $atts['show_toc'] === 'yes' ? AAB_TOC::render([
+            'items'         => $toc_data['items'],
+            'title'         => 'فهرست مطالب',
+            'instance_id'   => 'aab-toc-' . $post_id,
+            'depth'         => $atts['toc_depth'],
+            'reading_label' => $reading_time['label'],
+        ]) : '';
 
         return AAB_Helpers::render_template('article-content', [
             'post_id'           => $post_id,
@@ -60,9 +68,8 @@ class AAB_Shortcodes
             'show_meta'         => $atts['show_meta'],
             'show_tags'         => $atts['show_tags'],
             'show_breadcrumb'   => $atts['show_breadcrumb'],
-            'show_toc'          => $atts['show_toc'],
             'breadcrumb_items'  => $breadcrumb_items,
-            'toc_items'         => $toc_data['items'],
+            'toc_html'          => $toc_html,
             'content_html'      => $toc_data['content'],
             'fallback'          => AAB_Helpers::get_fallback_image(),
         ]);
@@ -75,6 +82,7 @@ class AAB_Shortcodes
         $atts = shortcode_atts([
             'post_id' => '',
             'title'   => 'فهرست مطالب',
+            'depth'   => AAB_TOC::DEFAULT_DEPTH,
         ], $atts, 'aagah_article_toc');
 
         $post_id = AAB_Helpers::get_post_id($atts);
@@ -84,18 +92,17 @@ class AAB_Shortcodes
             return '';
         }
 
-        $toc_data = AAB_Helpers::extract_toc_from_content($post->post_content);
-        if (empty($toc_data['items'])) {
-            return '';
-        }
+        // Same id algorithm as the the_content filter, so anchors match.
+        $toc_data = AAB_TOC::parse(do_blocks($post->post_content));
 
         static $toc_instance = 0;
         $toc_instance++;
 
-        return AAB_Helpers::render_template('article-toc', [
-            'toc_items'   => $toc_data['items'],
+        return AAB_TOC::render([
+            'items'       => $toc_data['items'],
             'title'       => sanitize_text_field($atts['title']),
             'instance_id' => 'aab-standalone-toc-' . $post_id . '-' . $toc_instance,
+            'depth'       => $atts['depth'],
             'standalone'  => true,
         ]);
     }
@@ -299,6 +306,7 @@ class AAB_Shortcodes
             'show_breadcrumb'    => 'yes',
             'show_toc'           => 'yes',
             'show_share'         => 'yes',
+            'toc_depth'          => AAB_TOC::DEFAULT_DEPTH,
         ], $atts, 'aagah_article_layout');
 
         $post_id = AAB_Helpers::get_post_id($atts);
@@ -313,10 +321,10 @@ class AAB_Shortcodes
             'show_tags'       => $atts['show_tags'],
             'show_breadcrumb' => $atts['show_breadcrumb'],
             'show_toc'        => $atts['show_toc'],
+            'toc_depth'       => $atts['toc_depth'],
         ]);
 
-        $has_rendered_toc = strpos($content_html, 'data-aab-toc') !== false;
-        $sidebar_html = ($atts['show_toc'] === 'yes' && $has_rendered_toc) ? self::article_sidebar(['post_id' => $post_id, 'show_latest' => 'no']) : '';
+        $has_toc = strpos($content_html, 'class="aab-toc-slot"') !== false;
         $latest_posts = $atts['show_latest'] === 'yes' ? get_posts(['post_type' => 'post', 'posts_per_page' => absint($atts['latest_count']), 'post__not_in' => [$post_id], 'ignore_sticky_posts' => true]) : [];
         $fallback = AAB_Helpers::get_fallback_image();
 
@@ -332,7 +340,7 @@ class AAB_Shortcodes
 
         return AAB_Helpers::render_template('article-layout', [
             'content_html'  => $content_html,
-            'sidebar_html'  => $sidebar_html,
+            'has_toc'       => $has_toc,
             'latest_posts' => $latest_posts,
             'fallback' => $fallback,
             'post_id' => $post_id,

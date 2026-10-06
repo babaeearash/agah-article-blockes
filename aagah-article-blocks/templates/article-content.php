@@ -40,21 +40,13 @@
                     <span><?php echo esc_html(get_the_date('', $post_id)); ?></span>
                     <span>•</span>
                     <span><?php echo esc_html($reading_time['label']); ?></span>
-                    <span style="margin-bottom:12px"></span>
-                </div>
+                                    </div>
             <?php endif; ?>
         </div>
     </div>
 
-    <?php if ($show_toc === 'yes' && !empty($toc_items)) : ?>
-        <?php
-        echo AAB_Helpers::render_template('article-toc', [
-            'toc_items'   => $toc_items,
-            'title'       => 'فهرست مطالب',
-            'instance_id' => 'aab-toc-' . $post_id,
-            'standalone'  => false,
-        ]);
-        ?>
+    <?php if (!empty($toc_html)) : ?>
+        <div class="aab-toc-slot"><?php echo $toc_html; ?></div>
     <?php endif; ?>
 
     <div class="aab-content">
