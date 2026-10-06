@@ -139,7 +139,9 @@ $comment_field =
         <label for="comment">متن دیدگاه</label>
         <textarea id="comment" name="comment" maxlength="1200" placeholder="پرسش یا تجربه خود را درباره این مقاله بنویسید" required aria-required="true"></textarea>
     </div>';
-$submission_fields = AAB_Comments::get_submission_fields($post_id);
+// comment_form() passes submit_field through sprintf(), so literal "%" (e.g. in the
+// percent-encoded referer URL of non-ASCII slugs) must be escaped as "%%".
+$submission_fields = str_replace('%', '%%', AAB_Comments::get_submission_fields($post_id));
 ?>
 
 <section class="aab-comments-wrap" aria-labelledby="aab-comments-title-<?php echo esc_attr($post_id); ?>">
